@@ -1,0 +1,154 @@
+<!-- Fais par liveweeeb.dev github.com/liveweeeb13 --> 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="barre-navigation">
+    <div class="conteneur-navigation">
+      <div class="bloc-marque">
+        <div class="details-marque">
+          <span class="date-navigation" id="nav-date">N/A</span>
+        </div>
+      </div>
+      <div class="actions-navigation">
+        <div class="badge-horloge">
+          <span class="point-direct"></span>
+          <span class="heure-direct" id="nav-clock">N/A</span>
+        </div>
+        <button type="button" class="bouton-primaire" id="btn-reroll">
+          <span>Nouveau tirage (+2 min)</span>
+        </button>
+        <button type="button" class="bouton-secondaire" id="btn-copy">
+          <span>Copier</span>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="tableau-de-bord">
+    <aside class="colonne-laterale">
+      <section class="panneau effet-verre">
+        <div class="entete-panneau">
+          <span class="titre-panneau">Planning</span>
+        </div>
+
+        <div class="bloc-synthese">
+          <div class="ligne-principale-chiffre">
+            <span class="chiffre-principal" id="kpi-remaining">N/A</span>
+          </div>
+          <div class="chiffre-secondaire" id="kpi-end-target">restant jusqu'à N/A</div>
+          <div class="piste-progression">
+            <div class="jauge-progression" id="progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="liste-details">
+          <div class="ligne-detail">
+            <span class="libelle-detail">Début</span>
+            <span class="valeur-detail" id="meta-start">N/A</span>
+          </div>
+          <div class="ligne-detail">
+            <span class="libelle-detail">Fin</span>
+            <span class="valeur-detail" id="meta-end">N/A</span>
+          </div>
+          <div class="ligne-detail">
+            <span class="libelle-detail">Rotation</span>
+            <span class="valeur-detail" id="meta-trips">N/A</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panneau effet-verre">
+        <div class="entete-panneau">
+          <span class="titre-panneau">Lignes actives</span>
+          <span class="compteur-panneau" id="lines-count">6 / 6</span>
+        </div>
+
+        <div class="onglets-filtres">
+          <button type="button" class="onglet-filtre actif" id="btn-all-lines">Toutes</button>
+          <button type="button" class="onglet-filtre" id="btn-tram-lines">Trams</button>
+          <button type="button" class="onglet-filtre" id="btn-bus-lines">Bus</button>
+        </div>
+
+        <div class="grille-lignes" id="lines-selector">
+          <!-- script.js -->
+        </div>
+      </section>
+
+      <section class="panneau effet-verre">
+        <div class="entete-panneau">
+          <span class="titre-panneau">Paramètres</span>
+        </div>
+
+        <div class="champ-formulaire">
+          <label for="opt-departure">Départ initial</label>
+          <select id="opt-departure" class="select-formulaire">
+            <option value="2" selected>Dans 2 minutes</option>
+            <option value="5">Dans 5 minutes</option>
+            <option value="0">Immédiat</option>
+          </select>
+        </div>
+
+        <div class="champ-formulaire">
+          <label for="opt-mode">Mode de tirage</label>
+          <select id="opt-mode" class="select-formulaire">
+            <option value="mixed" selected>Alterner les lignes</option>
+            <option value="single">Ligne unique</option>
+          </select>
+        </div>
+
+        <div class="champ-formulaire">
+          <label for="opt-length">Amplitude de vacation</label>
+          <select id="opt-length" class="select-formulaire">
+            <option value="short" selected>Courte</option>
+            <option value="medium">Standard</option>
+            <option value="long">Longue</option>
+          </select>
+        </div>
+
+        <div class="groupe-options">
+          <label class="ligne-option">
+            <span>Pause longue (30 min)</span>
+            <input type="checkbox" id="opt-meal" checked>
+            <span class="glissiere-option"></span>
+          </label>
+        </div>
+      </section>
+
+    </aside>
+    <section class="zone-principale">
+      <div class="panneau effet-verre panneau-principal">
+        
+        <div class="entete-chronologie">
+          <div>
+            <h1 class="titre-principal">Déroulé de la journée</h1>
+            <p class="sous-titre-principal" id="service-summary">Planning chronologique du conducteur</p>
+          </div>
+          <button type="button" class="bouton-discret" id="btn-toggle-all">Tout dérouler</button>
+        </div>
+
+        <div class="piste-chronologique" id="timeline">
+          <!-- script.js -->
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="pied-de-page">
+    <div class="conteneur-pied-de-page">
+      <span class="texte-pied-de-page">Fait de manière indépendante par liveweeeb</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

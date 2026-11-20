@@ -1,0 +1,6 @@
+/assets/img/*.png
+
+
+node_modules/
+package-lock.json
+lines.json
