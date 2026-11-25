@@ -62,6 +62,10 @@
             <span class="libelle-detail">Rotation</span>
             <span class="valeur-detail" id="meta-trips">N/A</span>
           </div>
+          <div class="ligne-detail">
+            <span class="libelle-detail">Ponctualité</span>
+            <span class="valeur-detail" id="meta-punctuality">À l'heure</span>
+          </div>
         </div>
       </section>
 
@@ -131,7 +135,11 @@
             <h1 class="titre-principal">Déroulé de la journée</h1>
             <p class="sous-titre-principal" id="service-summary">Planning chronologique du conducteur</p>
           </div>
-          <button type="button" class="bouton-discret" id="btn-toggle-all">Tout dérouler</button>
+          <button type="button" class="bouton-discret bouton-plein-ecran" id="btn-fullscreen" title="Plein écran">
+            <svg class="icone-bouton" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </svg>
+          </button>
         </div>
 
         <div class="piste-chronologique" id="timeline">

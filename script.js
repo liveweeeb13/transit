@@ -29,7 +29,6 @@ let shiftStart = 0;
 let shiftEnd = 0;
 let firstTerminus = "";
 let lastTerminus = "";
-let isAllOpen = false;
 
 function getLineKind(code, item) {
   if (item && item.type && typeof item.type === "string") {
@@ -221,7 +220,7 @@ function toggleLine(code) {
 }
 
 function setupEvents() {
-  document.getElementById("btn-reroll").onclick = () => generate();
+  document.getElementById("btn-reroll").onclick = () => generate(true);
   document.getElementById("btn-copy").onclick = copySchedule;
 
   document.getElementById("btn-all-lines").onclick = () => {
@@ -253,17 +252,54 @@ function setupEvents() {
     });
   });
 
-  document.getElementById("btn-toggle-all").onclick = () => {
-    isAllOpen = !isAllOpen;
-    document.getElementById("btn-toggle-all").textContent = isAllOpen ? "Tout réduire" : "Tout dérouler";
-    document.querySelectorAll(".bouton-details-etape").forEach(trig => {
-      trig.classList.toggle("est-deplie", isAllOpen);
-    });
-    document.querySelectorAll(".contenu-details-etape").forEach(el => {
-      el.classList.toggle("est-ouvert", isAllOpen);
-    });
-  };
+  const fsBtn = document.getElementById("btn-fullscreen");
+  if (fsBtn) {
+    fsBtn.onclick = toggleFullscreen;
+  }
 }
+
+function toggleFullscreen() {
+  const target = document.getElementById("timeline") || document.querySelector(".piste-chronologique");
+  if (!target) return;
+
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    if (target.requestFullscreen) {
+      target.requestFullscreen().catch(() => {});
+    } else if (target.webkitRequestFullscreen) {
+      target.webkitRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  }
+}
+
+function updateFullscreenButton() {
+  const isFs = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  const btn = document.getElementById("btn-fullscreen");
+  if (!btn) return;
+  const label = document.getElementById("label-plein-ecran");
+  const icon = btn.querySelector("svg");
+  if (isFs) {
+    if (label) label.textContent = "Quitter le plein écran";
+    btn.setAttribute("title", "Quitter le plein écran");
+    if (icon) {
+      icon.innerHTML = `<path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>`;
+    }
+  } else {
+    if (label) label.textContent = "Plein écran";
+    btn.setAttribute("title", "Plein écran");
+    if (icon) {
+      icon.innerHTML = `<path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>`;
+    }
+  }
+}
+
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+document.addEventListener("webkitfullscreenchange", updateFullscreenButton);
 
 function setActiveChip(activeId) {
   document.querySelectorAll(".onglets-filtres .onglet-filtre").forEach(c => c.classList.remove("actif"));
@@ -277,13 +313,110 @@ function minutesToTime(m) {
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
+function timeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== "string" || !timeStr.includes(":")) return null;
+  const parts = timeStr.split(":");
+  const hh = parseInt(parts[0], 10);
+  const mm = parseInt(parts[1], 10);
+  if (isNaN(hh) || isNaN(mm)) return null;
+  return hh * 60 + mm;
+}
+
+function getDiffMinutes(actualMin, scheduledMin) {
+  let diff = actualMin - scheduledMin;
+  if (diff > 720) diff -= 1440;
+  if (diff < -720) diff += 1440;
+  return diff;
+}
+
+function savePointages() {
+  try {
+    const map = {};
+    generatedSchedule.forEach((item, idx) => {
+      if (item.realStart || item.realEnd || item.completed) {
+        map[idx] = {
+          realStart: item.realStart || null,
+          realEnd: item.realEnd || null,
+          completed: Boolean(item.completed)
+        };
+      }
+    });
+    localStorage.setItem("transit_pointages_reels", JSON.stringify(map));
+  } catch (e) {}
+}
+
+function loadPointages() {
+  try {
+    const saved = localStorage.getItem("transit_pointages_reels");
+    if (!saved) return;
+    const map = JSON.parse(saved);
+    if (map && typeof map === "object") {
+      generatedSchedule.forEach((item, idx) => {
+        if (map[idx]) {
+          item.realStart = map[idx].realStart || null;
+          item.realEnd = map[idx].realEnd || null;
+          item.completed = Boolean(map[idx].completed);
+        }
+      });
+    }
+  } catch (e) {}
+}
+
+window.finirSection = function(idx) {
+  const item = generatedSchedule[idx];
+  if (!item) return;
+
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  if (!item.realStart) {
+    item.realStart = minutesToTime(item.start);
+  }
+  item.realEnd = timeStr;
+  item.completed = true;
+
+  // Démarre directement la section suivante à la même heure
+  const nextItem = generatedSchedule[idx + 1];
+  if (nextItem && !nextItem.completed) {
+    nextItem.realStart = timeStr;
+  }
+
+  savePointages();
+  renderTimeline(generatedSchedule);
+  updateMeta(generatedSchedule.filter(i => i.type === "drive").length);
+};
+
+window.annulerSection = function(idx) {
+  const item = generatedSchedule[idx];
+  if (!item) return;
+
+  item.realEnd = null;
+  item.completed = false;
+
+  // Réinitialise le départ automatique de la section suivante si elle n'est pas encore terminée
+  const nextItem = generatedSchedule[idx + 1];
+  if (nextItem && !nextItem.completed) {
+    nextItem.realStart = null;
+  }
+
+  savePointages();
+  renderTimeline(generatedSchedule);
+  updateMeta(generatedSchedule.filter(i => i.type === "drive").length);
+};
+
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function generate() {
+function generate(isNewReroll = false) {
   const activeKeys = Array.from(selectedLines);
   if (activeKeys.length === 0) return;
+
+  if (isNewReroll) {
+    try {
+      localStorage.removeItem("transit_pointages_reels");
+    } catch (e) {}
+  }
 
   const offset = parseInt(document.getElementById("opt-departure").value, 10);
   const now = new Date();
@@ -399,6 +532,10 @@ function generate() {
   shiftEnd = cur;
   generatedSchedule = list;
 
+  if (!isNewReroll) {
+    loadPointages();
+  }
+
   renderTimeline(list);
   updateMeta(tripsCount);
   updateProgress();
@@ -409,6 +546,37 @@ function updateMeta(trips) {
   document.getElementById("meta-end").textContent = `${minutesToTime(shiftEnd)} (${lastTerminus})`;
   document.getElementById("meta-trips").textContent = `${trips} courses`;
   document.getElementById("service-summary").textContent = `Service planifié de ${minutesToTime(shiftStart)} à ${minutesToTime(shiftEnd)}`;
+
+  const metaPunctuality = document.getElementById("meta-punctuality");
+  if (metaPunctuality) {
+    let latestDiff = null;
+    for (let i = generatedSchedule.length - 1; i >= 0; i--) {
+      const it = generatedSchedule[i];
+      if (it.realEnd) {
+        latestDiff = getDiffMinutes(timeToMinutes(it.realEnd), it.end);
+        break;
+      } else if (it.realStart) {
+        latestDiff = getDiffMinutes(timeToMinutes(it.realStart), it.start);
+        break;
+      }
+    }
+
+    if (latestDiff !== null) {
+      if (latestDiff > 0) {
+        metaPunctuality.textContent = `+${latestDiff} min (Retard)`;
+        metaPunctuality.style.color = "#f87171";
+      } else if (latestDiff < 0) {
+        metaPunctuality.textContent = `-${Math.abs(latestDiff)} min (Avance)`;
+        metaPunctuality.style.color = "#38bdf8";
+      } else {
+        metaPunctuality.textContent = "À l'heure";
+        metaPunctuality.style.color = "#34d399";
+      }
+    } else {
+      metaPunctuality.textContent = "À l'heure";
+      metaPunctuality.style.color = "#34d399";
+    }
+  }
 }
 
 function updateProgress() {
@@ -438,11 +606,88 @@ function renderTimeline(list) {
   const stream = document.getElementById("timeline");
   stream.innerHTML = "";
 
+  const exitBtn = document.createElement("button");
+  exitBtn.type = "button";
+  exitBtn.className = "bouton-discret bouton-flottant-plein-ecran";
+  exitBtn.id = "btn-exit-fullscreen";
+  exitBtn.title = "Quitter le plein écran";
+  exitBtn.innerHTML = `
+    <svg class="icone-bouton" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+    </svg>
+  `;
+  exitBtn.onclick = () => {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+  };
+  stream.appendChild(exitBtn);
+
+  const activeStepIndex = list.findIndex(it => !it.completed);
+  let cumulativeDelay = 0;
+
   list.forEach((item, idx) => {
     const el = document.createElement("div");
     const typeClass = item.type === "drive" ? "type-trajet" : "type-pause";
-    el.className = `etape-planning ${typeClass}`;
+    const isCompleted = Boolean(item.completed);
+    const isActive = (idx === activeStepIndex);
+
+    el.className = `etape-planning ${typeClass}${isCompleted ? " etape-terminee" : ""}${isActive ? " etape-en-cours" : ""}`;
     el.id = `timeline-item-${idx}`;
+
+    let ecartBadgeHtml = "";
+    let actionHtml = "";
+
+    if (isCompleted) {
+      const actualEndMin = timeToMinutes(item.realEnd);
+      const endDiff = getDiffMinutes(actualEndMin, item.end);
+      cumulativeDelay = endDiff;
+
+      if (endDiff > 0) {
+        ecartBadgeHtml = `<span class="pastille-ecart ecart-retard">Retard +${endDiff} min</span>`;
+      } else if (endDiff < 0) {
+        ecartBadgeHtml = `<span class="pastille-ecart ecart-avance">Avance ${Math.abs(endDiff)} min</span>`;
+      } else {
+        ecartBadgeHtml = `<span class="pastille-ecart ecart-a-l-heure">À l'heure</span>`;
+      }
+
+      actionHtml = `
+        <div class="recap-pointage-termine">
+          <div class="texte-pointage-termine">
+            <span>Terminé à ${item.realEnd}</span>
+            ${ecartBadgeHtml}
+          </div>
+          <button type="button" class="bouton-annuler-section" onclick="annulerSection(${idx})" title="Rouvrir et modifier cette étape">Modifier</button>
+        </div>
+      `;
+    } else if (isActive) {
+      const nextLabel = idx === list.length - 1 ? "Finir le service" : "Finir / Suivant";
+      if (!item.realStart) {
+        item.realStart = minutesToTime(item.start);
+      }
+
+      actionHtml = `
+        <div class="zone-action-etape">
+          <button type="button" class="bouton-finir-section" onclick="finirSection(${idx})">
+            <span>${nextLabel}</span>
+            <svg class="icone-bouton" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14m-7-7 7 7-7 7"/>
+            </svg>
+          </button>
+        </div>
+      `;
+    }
+
+    let estimationHtml = "";
+    if (!isCompleted && cumulativeDelay !== 0) {
+      const estStart = item.start + cumulativeDelay;
+      const estEnd = item.end + cumulativeDelay;
+      const sign = cumulativeDelay > 0 ? "+" : "";
+      const cls = cumulativeDelay > 0 ? "retard" : "avance";
+      estimationHtml = `<span class="indication-estimee ${cls}">${sign}${cumulativeDelay} min</span>`;
+    }
 
     let mainHtml = "";
     if (item.type === "drive") {
@@ -454,7 +699,7 @@ function renderTimeline(list) {
         <div class="ligne-titre-etape">
           ${lineIconHtml}
           <span class="titre-etape">${item.title}</span>
-          <span class="pastille-en-cours" style="display:none;">En cours</span>
+          <span class="pastille-en-cours" style="${isActive ? 'display:inline-block;' : 'display:none;'}">En cours</span>
         </div>
         <div class="sous-titre-etape">${item.subtitle}</div>
       `;
@@ -462,7 +707,7 @@ function renderTimeline(list) {
       mainHtml = `
         <div class="ligne-titre-etape">
           <span class="titre-etape">${item.title}</span>
-          <span class="pastille-en-cours" style="display:none;">En cours</span>
+          <span class="pastille-en-cours" style="${isActive ? 'display:inline-block;' : 'display:none;'}">En cours</span>
         </div>
         <div class="sous-titre-etape">${item.subtitle}</div>
       `;
@@ -472,10 +717,14 @@ function renderTimeline(list) {
       <div class="point-etape"></div>
       <div class="carte-etape">
         <div class="haut-de-carte">
-          <span class="plage-horaire">${minutesToTime(item.start)} - ${minutesToTime(item.end)}</span>
+          <div>
+            <span class="plage-horaire">${minutesToTime(item.start)} - ${minutesToTime(item.end)}</span>
+            ${estimationHtml}
+          </div>
           <span class="duree-bulle">${item.duration} min</span>
         </div>
         ${mainHtml}
+        ${actionHtml}
       </div>
     `;
 
@@ -493,14 +742,17 @@ window.toggleDetail = function(btn) {
 
 function checkActiveNode() {
   if (!generatedSchedule.length) return;
-  const now = new Date();
-  const cur = now.getHours() * 60 + now.getMinutes();
+  const activeStepIndex = generatedSchedule.findIndex(it => !it.completed);
 
   generatedSchedule.forEach((item, idx) => {
     const el = document.getElementById(`timeline-item-${idx}`);
     if (!el) return;
-    const isActive = cur >= item.start && cur < item.end;
+    const isCompleted = Boolean(item.completed);
+    const isActive = (idx === activeStepIndex);
+
+    el.classList.toggle("etape-terminee", isCompleted);
     el.classList.toggle("etape-en-cours", isActive);
+
     const liveTag = el.querySelector(".pastille-en-cours");
     if (liveTag) {
       liveTag.style.display = isActive ? "inline-block" : "none";
@@ -519,6 +771,9 @@ function copySchedule() {
     if (it.line) text += `[${it.line}] `;
     text += `${it.title}`;
     if (it.subtitle) text += ` - ${it.subtitle}`;
+    if (it.realStart || it.realEnd) {
+      text += ` [Réel : ${it.realStart || '--:--'} -> ${it.realEnd || '--:--'}]`;
+    }
     text += `\n`;
   });
 
