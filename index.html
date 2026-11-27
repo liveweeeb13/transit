@@ -26,6 +26,9 @@
         <button type="button" class="bouton-primaire" id="btn-reroll">
           <span>Nouveau tirage (+2 min)</span>
         </button>
+        <button type="button" class="bouton-secondaire" id="btn-open-params">
+          <span>Paramètres de trajet</span>
+        </button>
         <button type="button" class="bouton-secondaire" id="btn-copy">
           <span>Copier</span>
         </button>
@@ -86,46 +89,6 @@
         </div>
       </section>
 
-      <section class="panneau effet-verre">
-        <div class="entete-panneau">
-          <span class="titre-panneau">Paramètres</span>
-        </div>
-
-        <div class="champ-formulaire">
-          <label for="opt-departure">Départ initial</label>
-          <select id="opt-departure" class="select-formulaire">
-            <option value="2" selected>Dans 2 minutes</option>
-            <option value="5">Dans 5 minutes</option>
-            <option value="0">Immédiat</option>
-          </select>
-        </div>
-
-        <div class="champ-formulaire">
-          <label for="opt-mode">Mode de tirage</label>
-          <select id="opt-mode" class="select-formulaire">
-            <option value="mixed" selected>Alterner les lignes</option>
-            <option value="single">Ligne unique</option>
-          </select>
-        </div>
-
-        <div class="champ-formulaire">
-          <label for="opt-length">Amplitude de vacation</label>
-          <select id="opt-length" class="select-formulaire">
-            <option value="short" selected>Courte</option>
-            <option value="medium">Standard</option>
-            <option value="long">Longue</option>
-          </select>
-        </div>
-
-        <div class="groupe-options">
-          <label class="ligne-option">
-            <span>Pause longue (30 min)</span>
-            <input type="checkbox" id="opt-meal" checked>
-            <span class="glissiere-option"></span>
-          </label>
-        </div>
-      </section>
-
     </aside>
     <section class="zone-principale">
       <div class="panneau effet-verre panneau-principal">
@@ -156,6 +119,150 @@
       <span class="texte-pied-de-page">Fait de manière indépendante par liveweeeb</span>
     </div>
   </footer>
+
+  <div class="modale-fond" id="modal-params" aria-hidden="true">
+    <div class="modale-contenu effet-verre" role="dialog" aria-modal="true" aria-labelledby="modal-params-title">
+      <div class="modale-entete">
+        <h2 class="modale-titre" id="modal-params-title">Paramètres de trajet</h2>
+        <button type="button" class="modale-fermer" id="btn-close-params" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modale-corps">
+        <table class="tableau-parametres">
+          <tbody>
+            <tr>
+              <td>
+                <div class="option-texte">
+                  <label class="option-titre" for="opt-departure">Départ initial</label>
+                  <span class="option-description">Délai avant le premier départ du service.</span>
+                </div>
+              </td>
+              <td class="cellule-controle">
+                <select id="opt-departure" class="select-formulaire">
+                  <option value="2" selected>2 minutes</option>
+                  <option value="5">5 minutes</option>
+                  <option value="0">Immédiat</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="option-texte">
+                  <label class="option-titre" for="opt-mode">Mode de tirage</label>
+                  <span class="option-description">Alterner plusieurs lignes ou rester sur une seule.</span>
+                </div>
+              </td>
+              <td class="cellule-controle">
+                <select id="opt-mode" class="select-formulaire">
+                  <option value="mixed" selected>Alterner les lignes</option>
+                  <option value="single">Ligne unique</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="option-texte">
+                  <label class="option-titre" for="opt-length">Amplitude de vacation</label>
+                  <span class="option-description">Nombre de courses générées pour le service.</span>
+                </div>
+              </td>
+              <td class="cellule-controle">
+                <select id="opt-length" class="select-formulaire">
+                  <option value="short" selected>Courte</option>
+                  <option value="medium">Standard</option>
+                  <option value="long">Longue</option>
+                </select>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="option-texte">
+                  <label class="option-titre" for="opt-meal">Pause longue (30 min)</label>
+                  <span class="option-description">Ajoute une coupure de 30 minutes à mi-service.</span>
+                </div>
+              </td>
+              <td class="cellule-controle">
+                <label class="ligne-option ligne-option-compacte">
+                  <input type="checkbox" id="opt-meal" checked>
+                  <span class="glissiere-option"></span>
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="option-texte">
+                  <label class="option-titre" for="opt-optimized-switch">Changement optimisé</label>
+                  <span class="option-description">Privilégie les correspondances au même terminus lors d'un changement de ligne.</span>
+                </div>
+              </td>
+              <td class="cellule-controle">
+                <label class="ligne-option ligne-option-compacte">
+                  <input type="checkbox" id="opt-optimized-switch" checked>
+                  <span class="glissiere-option"></span>
+                </label>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div class="option-texte">
+                  <span class="option-titre">Emploi du temps personnalisé</span>
+                  <span class="option-description">Compose manuellement l'ordre des lignes, trajets et pauses.</span>
+                </div>
+              </td>
+              <td class="cellule-controle">
+                <button type="button" class="bouton-secondaire" id="btn-open-custom">Créer un EDT</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modale-fond" id="modal-custom-edt" aria-hidden="true">
+    <div class="modale-contenu effet-verre" role="dialog" aria-modal="true" aria-labelledby="modal-custom-title">
+      <div class="modale-entete">
+        <h2 class="modale-titre" id="modal-custom-title">Créer un EDT personnalisé</h2>
+        <button type="button" class="modale-fermer" id="btn-close-custom" aria-label="Fermer">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modale-corps">
+        <div class="champ-formulaire">
+          <label for="custom-start-time">Heure de début</label>
+          <input type="time" id="custom-start-time" class="select-formulaire">
+        </div>
+
+        <div class="custom-ajout-barre">
+          <select id="custom-line-select" class="select-formulaire"></select>
+          <select id="custom-dir-select" class="select-formulaire">
+            <option value="1">Direction 1</option>
+            <option value="2">Direction 2</option>
+          </select>
+          <button type="button" class="bouton-primaire" id="btn-custom-add-drive">+ Course</button>
+        </div>
+
+        <div class="custom-ajout-pause">
+          <input type="number" id="custom-pause-dur" class="select-formulaire" value="5" min="1" max="120" placeholder="Min">
+          <button type="button" class="bouton-secondaire" id="btn-custom-add-pause">+ Pause (min)</button>
+        </div>
+
+        <div class="custom-liste-etapes" id="custom-steps-list"></div>
+
+        <div class="custom-actions-pied">
+          <button type="button" class="bouton-secondaire" id="btn-custom-clear">Vider</button>
+          <button type="button" class="bouton-primaire" id="btn-apply-custom">Appliquer l'EDT</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

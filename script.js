@@ -77,7 +77,9 @@ function savePreferences() {
       departure: document.getElementById("opt-departure")?.value || "2",
       mode: document.getElementById("opt-mode")?.value || "mixed",
       length: document.getElementById("opt-length")?.value || "medium",
-      meal: document.getElementById("opt-meal")?.checked ?? true
+      endDir: document.getElementById("opt-end-dir")?.value || "any",
+      meal: document.getElementById("opt-meal")?.checked ?? true,
+      optimizedSwitch: document.getElementById("opt-optimized-switch")?.checked ?? true
     };
     localStorage.setItem("transit_parametres", JSON.stringify(params));
   } catch (e) {
@@ -118,6 +120,9 @@ function loadPreferences() {
       }
       if (p.meal !== undefined && document.getElementById("opt-meal")) {
         document.getElementById("opt-meal").checked = Boolean(p.meal);
+      }
+      if (p.optimizedSwitch !== undefined && document.getElementById("opt-optimized-switch")) {
+        document.getElementById("opt-optimized-switch").checked = Boolean(p.optimizedSwitch);
       }
     }
   } catch (e) {
@@ -245,12 +250,45 @@ function setupEvents() {
   };
 
   // Sauvegarde automatique des paramètres au changement
-  ["opt-departure", "opt-mode", "opt-length", "opt-meal"].forEach(id => {
+  ["opt-departure", "opt-mode", "opt-length", "opt-meal", "opt-optimized-switch"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", () => {
       savePreferences();
       generate();
     });
   });
+
+  const modalParams = document.getElementById("modal-params");
+  const btnOpenParams = document.getElementById("btn-open-params");
+  const btnCloseParams = document.getElementById("btn-close-params");
+
+  const closeModal = () => {
+    if (modalParams) {
+      modalParams.classList.remove("est-ouverte");
+      modalParams.setAttribute("aria-hidden", "true");
+    }
+  };
+
+  if (btnOpenParams && modalParams) {
+    btnOpenParams.onclick = () => {
+      modalParams.classList.add("est-ouverte");
+      modalParams.setAttribute("aria-hidden", "false");
+    };
+  }
+  if (btnCloseParams) {
+    btnCloseParams.onclick = closeModal;
+  }
+  if (modalParams) {
+    modalParams.addEventListener("click", (e) => {
+      if (e.target === modalParams) closeModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modalParams.classList.contains("est-ouverte")) {
+        closeModal();
+      }
+    });
+  }
+
+  setupCustomEdtModal(closeModal);
 
   const fsBtn = document.getElementById("btn-fullscreen");
   if (fsBtn) {
@@ -426,7 +464,9 @@ function generate(isNewReroll = false) {
 
   const mode = document.getElementById("opt-mode").value;
   const len = document.getElementById("opt-length").value;
+  const endDir = document.getElementById("opt-end-dir")?.value || "any";
   const hasMeal = document.getElementById("opt-meal").checked;
+  const optimizedSwitch = document.getElementById("opt-optimized-switch")?.checked ?? true;
 
   let tripsCount = 6;
   if (len === "short") tripsCount = getRandomInt(3, 4);
@@ -443,6 +483,11 @@ function generate(isNewReroll = false) {
   let routeType = getLineRouteType(line);
   let dir = Math.random() < 0.5 ? 1 : 2;
 
+  if (endDir === "principal" && routeType !== 2) {
+    const mainDir = Number(line.terminusPrincipal || line.garePrincipale || 1);
+    dir = mainDir === 1 ? 2 : 1; // Partir du terminus principal
+  }
+
   if (routeType === 2) {
     firstTerminus = getDir1(line);
   } else {
@@ -452,10 +497,31 @@ function generate(isNewReroll = false) {
   for (let i = 1; i <= tripsCount; i++) {
     if (mode === "mixed" && i > 1 && Math.random() < 0.45 && activeKeys.length > 1) {
       const rest = activeKeys.filter(k => k !== curKey);
-      curKey = rest[Math.floor(Math.random() * rest.length)];
+      const prevStation = list[list.length - 1]?.title || "";
+      let pickedKey = null;
+
+      if (optimizedSwitch && prevStation) {
+        const matching = rest.filter(k => {
+          const cand = linesData[k] || DEFAULT_LINES[k];
+          return getDir1(cand) === prevStation || getDir2(cand) === prevStation;
+        });
+        if (matching.length > 0) {
+          pickedKey = matching[Math.floor(Math.random() * matching.length)];
+        }
+      }
+
+      curKey = pickedKey || rest[Math.floor(Math.random() * rest.length)];
       line = linesData[curKey] || DEFAULT_LINES[curKey];
       routeType = getLineRouteType(line);
-      dir = Math.random() < 0.5 ? 1 : 2;
+
+      if (optimizedSwitch && pickedKey && routeType !== 2) {
+        dir = getDir1(line) === prevStation ? 2 : 1;
+      } else if (endDir === "principal" && routeType !== 2) {
+        const mainDir = Number(line.terminusPrincipal || line.garePrincipale || 1);
+        dir = mainDir === 1 ? 2 : 1;
+      } else {
+        dir = Math.random() < 0.5 ? 1 : 2;
+      }
     }
 
     line = linesData[curKey] || DEFAULT_LINES[curKey];
@@ -473,6 +539,13 @@ function generate(isNewReroll = false) {
       subtitleText = viaStation ? `Boucle par ${viaStation}` : `Départ et retour : ${baseStation}`;
       lastTerminus = baseStation;
     } else { // Allé retour 
+      if (i === tripsCount) {
+        if (endDir === "principal") {
+          dir = Number(line.terminusPrincipal || line.garePrincipale || 1);
+        } else if (endDir === "1" || endDir === "2") {
+          dir = Number(endDir);
+        }
+      }
       const d1 = getDir1(line);
       const d2 = getDir2(line) || d1;
       target = dir === 1 ? d1 : d2;
@@ -663,7 +736,7 @@ function renderTimeline(list) {
         </div>
       `;
     } else if (isActive) {
-      const nextLabel = idx === list.length - 1 ? "Finir le service" : "Finir / Suivant";
+      const nextLabel = idx === list.length - 1 ? "Finir le service" : "Suivant";
       if (!item.realStart) {
         item.realStart = minutesToTime(item.start);
       }
@@ -779,5 +852,154 @@ function copySchedule() {
 
   navigator.clipboard.writeText(text).then(() => {
     alert("Déroulé copié dans le presse-papier");
+  });
+}
+
+let customSteps = [];
+
+function setupCustomEdtModal(closeParamsModal) {
+  const modalCustom = document.getElementById("modal-custom-edt");
+  const btnOpenCustom = document.getElementById("btn-open-custom");
+  const btnCloseCustom = document.getElementById("btn-close-custom");
+  const lineSelect = document.getElementById("custom-line-select");
+  const dirSelect = document.getElementById("custom-dir-select");
+  const startInput = document.getElementById("custom-start-time");
+  const stepsListEl = document.getElementById("custom-steps-list");
+
+  if (!modalCustom || !btnOpenCustom) return;
+
+  const populateLines = () => {
+    if (!lineSelect) return;
+    lineSelect.innerHTML = "";
+    Object.keys(linesData).forEach(code => {
+      const opt = document.createElement("option");
+      opt.value = code;
+      opt.textContent = `Ligne ${code}`;
+      lineSelect.appendChild(opt);
+    });
+    updateDirLabels();
+  };
+
+  const updateDirLabels = () => {
+    if (!lineSelect || !dirSelect) return;
+    const line = linesData[lineSelect.value] || DEFAULT_LINES[lineSelect.value];
+    if (!line) return;
+    const d1 = getDir1(line);
+    const d2 = getDir2(line) || d1;
+    dirSelect.options[0].textContent = d1;
+    dirSelect.options[1].textContent = d2;
+  };
+
+  const renderCustomSteps = () => {
+    if (!stepsListEl) return;
+    if (customSteps.length === 0) {
+      stepsListEl.innerHTML = `<div class="custom-etape-vide">Aucune étape ajoutée</div>`;
+      return;
+    }
+    stepsListEl.innerHTML = "";
+    customSteps.forEach((st, idx) => {
+      const row = document.createElement("div");
+      row.className = "custom-etape-ligne";
+      const label = st.type === "drive"
+        ? `[${st.line}] ${st.title} (${st.duration} min)`
+        : `Pause (${st.duration} min)`;
+      row.innerHTML = `<span>${idx + 1}. ${label}</span><button type="button" class="bouton-annuler-section" onclick="removeCustomStep(${idx})">Supprimer</button>`;
+      stepsListEl.appendChild(row);
+    });
+  };
+
+  window.removeCustomStep = (idx) => {
+    customSteps.splice(idx, 1);
+    renderCustomSteps();
+  };
+
+  const closeCustom = () => {
+    modalCustom.classList.remove("est-ouverte");
+    modalCustom.setAttribute("aria-hidden", "true");
+  };
+
+  lineSelect?.addEventListener("change", updateDirLabels);
+
+  btnOpenCustom.onclick = () => {
+    closeParamsModal();
+    populateLines();
+    if (startInput && !startInput.value) {
+      const now = new Date(Date.now() + 2 * 60 * 1000);
+      startInput.value = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    }
+    renderCustomSteps();
+    modalCustom.classList.add("est-ouverte");
+    modalCustom.setAttribute("aria-hidden", "false");
+  };
+
+  btnCloseCustom?.addEventListener("click", closeCustom);
+  modalCustom.addEventListener("click", (e) => {
+    if (e.target === modalCustom) closeCustom();
+  });
+
+  document.getElementById("btn-custom-add-drive")?.addEventListener("click", () => {
+    const code = lineSelect.value;
+    const line = linesData[code] || DEFAULT_LINES[code];
+    if (!line) return;
+    const routeType = getLineRouteType(line);
+    const dir = Number(dirSelect.value);
+    const d1 = getDir1(line);
+    const d2 = getDir2(line) || d1;
+    const target = routeType === 2 ? d1 : (dir === 1 ? d1 : d2);
+    const origin = routeType === 2 ? d1 : (dir === 1 ? d2 : d1);
+    const subtitle = routeType === 2 ? (d2 ? `Boucle par ${d2}` : `Départ et retour : ${d1}`) : `Départ de ${origin}`;
+    const dur = Math.max(0, Number(line.temps !== undefined && line.temps !== null ? line.temps : 12));
+
+    customSteps.push({
+      type: "drive",
+      routeType,
+      line: code,
+      icon: line.icon || "",
+      color: line.color || "#0080c8",
+      title: target,
+      subtitle,
+      duration: dur
+    });
+    renderCustomSteps();
+  });
+
+  document.getElementById("btn-custom-add-pause")?.addEventListener("click", () => {
+    const dur = Math.max(1, parseInt(document.getElementById("custom-pause-dur")?.value || "5", 10));
+    customSteps.push({ type: "pause", title: "Pause", subtitle: "", duration: dur });
+    renderCustomSteps();
+  });
+
+  document.getElementById("btn-custom-clear")?.addEventListener("click", () => {
+    customSteps = [];
+    renderCustomSteps();
+  });
+
+  document.getElementById("btn-apply-custom")?.addEventListener("click", () => {
+    if (customSteps.length === 0) return;
+    try { localStorage.removeItem("transit_pointages_reels"); } catch (e) {}
+
+    let cur = timeToMinutes(startInput?.value) ?? (new Date().getHours() * 60 + new Date().getMinutes());
+    shiftStart = cur;
+    const list = [];
+    let tripsCount = 0;
+    firstTerminus = "";
+    lastTerminus = "";
+
+    customSteps.forEach(st => {
+      if (st.type === "drive") {
+        tripsCount++;
+        if (!firstTerminus) firstTerminus = st.title;
+        lastTerminus = st.title;
+      }
+      list.push({ ...st, start: cur, end: cur + st.duration });
+      cur += st.duration;
+    });
+
+    shiftEnd = cur;
+    generatedSchedule = list;
+    renderTimeline(list);
+    updateMeta(tripsCount);
+    updateProgress();
+    closeCustom();
   });
 }
