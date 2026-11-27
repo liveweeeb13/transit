@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carte Centre Val Oria</title>
+  <link rel="stylesheet" href="/css/map.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="map-app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div>
+          <h1>Centre Val Oria</h1>
+        </div>
+        <a href="/" class="btn-back" title="Retour à l'accueil">Emploi</a>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="stop-search" placeholder="Rechercher un arrêt..." autocomplete="off">
+        <div id="search-results" class="search-results hidden"></div>
+      </div>
+
+      <div class="section-header">
+        <span>Lignes du réseau</span>
+        <div class="line-actions">
+          <button type="button" id="btn-all-lines" class="btn-mini">Tout</button>
+          <button type="button" id="btn-no-lines" class="btn-mini">Aucun</button>
+        </div>
+      </div>
+
+      <div id="lines-list" class="lines-list"></div>
+
+      <div id="stop-details" class="stop-details hidden">
+        <div class="stop-details-header">
+          <div>
+            <span class="stop-type-badge" id="detail-type">Arrêt</span>
+            <h2 id="detail-name">—</h2>
+          </div>
+          <button type="button" id="btn-close-details" class="btn-close" title="Fermer">✕</button>
+        </div>
+        <div class="detail-lines" id="detail-lines"></div>
+        <button type="button" id="btn-refocus" class="btn-refocus">Recentrer sur cet arrêt</button>
+      </div>
+    </aside>
+
+    <main class="map-viewport" id="map-viewport">
+      <svg id="transit-map" viewBox="0 0 1200 1000" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        <g id="map-world">
+          <g id="layer-geo"></g>
+          <g id="layer-lines"></g>
+          <g id="layer-stops"></g>
+          <g id="layer-labels"></g>
+        </g>
+      </svg>
+
+      <div class="map-controls">
+        <button type="button" id="btn-zoom-in" title="Zoomer (+)">+</button>
+        <button type="button" id="btn-zoom-out" title="Dézoomer (-)">−</button>
+        <button type="button" id="btn-zoom-reset" title="Réinitialiser la vue">⌖</button>
+      </div>
+
+      <div class="zoom-indicator" id="zoom-indicator">100%</div>
+    </main>
+  </div>
+
+  <script src="/js/map.js"></script>
+</body>
+</html>

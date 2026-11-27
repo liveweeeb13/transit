@@ -67,7 +67,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   generate();
 });
 
-// Sauvegarde et chargement des préférences (localStorage)
 function savePreferences() {
   try {
     const activeArr = Array.from(selectedLines);
@@ -83,7 +82,7 @@ function savePreferences() {
     };
     localStorage.setItem("transit_parametres", JSON.stringify(params));
   } catch (e) {
-    // Tolérance si localStorage inaccessible
+    // nothing
   }
 }
 
@@ -249,7 +248,6 @@ function setupEvents() {
     savePreferences();
   };
 
-  // Sauvegarde automatique des paramètres au changement
   ["opt-departure", "opt-mode", "opt-length", "opt-meal", "opt-optimized-switch"].forEach(id => {
     document.getElementById(id)?.addEventListener("change", () => {
       savePreferences();
@@ -413,7 +411,6 @@ window.finirSection = function(idx) {
   item.realEnd = timeStr;
   item.completed = true;
 
-  // Démarre directement la section suivante à la même heure
   const nextItem = generatedSchedule[idx + 1];
   if (nextItem && !nextItem.completed) {
     nextItem.realStart = timeStr;
@@ -431,7 +428,6 @@ window.annulerSection = function(idx) {
   item.realEnd = null;
   item.completed = false;
 
-  // Réinitialise le départ automatique de la section suivante si elle n'est pas encore terminée
   const nextItem = generatedSchedule[idx + 1];
   if (nextItem && !nextItem.completed) {
     nextItem.realStart = null;
